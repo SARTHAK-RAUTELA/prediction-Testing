@@ -13,6 +13,10 @@ from models.poisson_model import (
 )
 from config import MAX_GOALS
 
+# Goals split per half (empirical across major tournaments)
+_ALPHA_1H = 0.45
+_ALPHA_2H = 0.55
+
 
 ASIAN_TOTAL_LINES = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5]
 ASIAN_HANDICAP_LINES = [
@@ -63,6 +67,89 @@ def asian_line_probs(matrix: np.ndarray, line: float) -> Tuple[float, float]:
             under_combined /= total
 
         return round(over_combined, 4), round(under_combined, 4)
+
+
+def clean_sheet_probs(matrix: np.ndarray) -> Dict:
+    """
+    P(team keeps clean sheet) = P(opponent scores 0).
+    Home clean sheet → away scores 0 → sum of column 0.
+    Away clean sheet → home scores 0 → sum of row 0.
+    """
+    home_cs = float(matrix[:, 0].sum())
+    away_cs = float(matrix[0, :].sum())
+    return {
+        "home": {"prob": round(home_cs, 4), "odds": prob_to_odds(home_cs)},
+        "away": {"prob": round(away_cs, 4), "odds": prob_to_odds(away_cs)},
+    }
+
+
+def total_goals_exact_probs(matrix: np.ndarray) -> List[Dict]:
+    """
+    P(total goals = N) for N in {0, 1, 2, 3, 4+}.
+    P(N) = sum over all (i,j) where i+j=N of matrix[i][j].
+    """
+    n_max = matrix.shape[0] - 1
+    rows = []
+    cumulative = 0.0
+    for n in range(4):
+        p = float(sum(
+            matrix[i, n - i]
+            for i in range(n + 1)
+            if n - i <= n_max
+        ))
+        cumulative += p
+        rows.append({"goals": str(n), "prob": round(p, 4), "odds": prob_to_odds(p)})
+    four_plus = max(1.0 - cumulative, 0.0)
+    rows.append({"goals": "4+", "prob": round(four_plus, 4), "odds": prob_to_odds(four_plus)})
+    return rows
+
+
+def btts_half_prob(lam_home: float, lam_away: float, fraction: float) -> Dict:
+    """BTTS for one half. fraction = fraction of match goals in that half."""
+    m = build_score_matrix(lam_home * fraction, lam_away * fraction, MAX_GOALS)
+    y = btts_yes(m)
+    n = btts_no(m)
+    return {
+        "yes": {"prob": round(y, 4), "odds": prob_to_odds(y)},
+        "no":  {"prob": round(n, 4), "odds": prob_to_odds(n)},
+    }
+
+
+def htft_combo_probs(lam_home: float, lam_away: float) -> Dict:
+    """
+    9-way HT/FT combination market.
+    Computes joint P(HT result, FT result) via independent HT and 2H score matrices.
+    Keys: '1/1', '1/X', '1/2', 'X/1', 'X/X', 'X/2', '2/1', '2/X', '2/2'
+    """
+    MG = min(MAX_GOALS, 7)
+    ht_m = build_score_matrix(lam_home * _ALPHA_1H, lam_away * _ALPHA_1H, MG)
+    sh_m = build_score_matrix(lam_home * _ALPHA_2H, lam_away * _ALPHA_2H, MG)
+
+    combos: Dict[str, float] = {
+        "1/1": 0.0, "1/X": 0.0, "1/2": 0.0,
+        "X/1": 0.0, "X/X": 0.0, "X/2": 0.0,
+        "2/1": 0.0, "2/X": 0.0, "2/2": 0.0,
+    }
+
+    for i in range(MG + 1):
+        for j in range(MG + 1):
+            p_ht = float(ht_m[i, j])
+            if p_ht < 1e-10:
+                continue
+            ht_r = "1" if i > j else ("X" if i == j else "2")
+            for k in range(MG + 1):
+                for l in range(MG + 1):
+                    p_sh = float(sh_m[k, l])
+                    if p_sh < 1e-10:
+                        continue
+                    ft_h, ft_a = i + k, j + l
+                    ft_r = "1" if ft_h > ft_a else ("X" if ft_h == ft_a else "2")
+                    combos[f"{ht_r}/{ft_r}"] += p_ht * p_sh
+
+    return {
+        k: {"prob": round(v, 4), "odds": prob_to_odds(v) if v > 0.001 else 999.0}
+        for k, v in combos.items()
+    }
 
 
 def calculate_all_markets(lam_home: float, lam_away: float) -> Dict:
@@ -146,6 +233,8 @@ def calculate_all_markets(lam_home: float, lam_away: float) -> Dict:
             "yes": {"prob": round(btts_y, 4), "odds": prob_to_odds(btts_y)},
             "no": {"prob": round(btts_n, 4), "odds": prob_to_odds(btts_n)},
         },
+        "btts_ht": btts_half_prob(lam_home, lam_away, _ALPHA_1H),
+        "btts_2h": btts_half_prob(lam_home, lam_away, _ALPHA_2H),
         "asian_total": asian_totals,
         "asian_handicap": asian_handicaps,
         "double_chance": {
@@ -157,6 +246,9 @@ def calculate_all_markets(lam_home: float, lam_away: float) -> Dict:
             "home": {"prob": dnb_home, "odds": prob_to_odds(dnb_home)},
             "away": {"prob": dnb_away, "odds": prob_to_odds(dnb_away)},
         },
+        "clean_sheet": clean_sheet_probs(matrix),
+        "total_goals_exact": total_goals_exact_probs(matrix),
+        "htft_combo": htft_combo_probs(lam_home, lam_away),
         "correct_score": cs,
         "first_goal": {
             "home": {"prob": fg["home_first"], "odds": prob_to_odds(fg["home_first"])},

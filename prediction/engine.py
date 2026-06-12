@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 from collectors.data_aggregator import DataAggregator
 from models.composite_model import compute_lambdas
 from models.elo_model import load_elo_ratings, update_elo, save_elo_ratings
+from models.goalscorer_model import calculate_goalscorer_probs, first_goalscorer_probs
 from prediction.markets import calculate_all_markets, find_value_bets
 from prediction.confidence import calculate_confidence
 
@@ -68,6 +69,32 @@ class PredictionEngine:
             elo_ratings=self.elo_ratings,
         )
 
+        # Fetch WC top scorers for goalscorer model
+        top_scorers: Dict[str, float] = {}
+        try:
+            raw_sc = self.aggregator.fd.get_top_scorers("WC")
+            for s in raw_sc:
+                pname = s.get("player", {}).get("name", "")
+                goals = s.get("numberOfGoals") or s.get("goals", 0)
+                if pname and goals:
+                    top_scorers[pname] = int(goals)
+        except Exception:
+            pass
+
+        # Compute player goalscorer probabilities
+        home_scorers = calculate_goalscorer_probs(
+            lineup=data["lineups"]["home"],
+            team_lam=lam_home,
+            top_scorers=top_scorers,
+        )
+        away_scorers = calculate_goalscorer_probs(
+            lineup=data["lineups"]["away"],
+            team_lam=lam_away,
+            top_scorers=top_scorers,
+        )
+        home_1st = first_goalscorer_probs(home_scorers)
+        away_1st = first_goalscorer_probs(away_scorers)
+
         # Calculate all markets
         markets = calculate_all_markets(lam_home, lam_away)
 
@@ -127,6 +154,12 @@ class PredictionEngine:
                 "missing_home_players": diagnostics.get("home_player_impact", {}).get("missing_key_players", []),
                 "missing_away_players": diagnostics.get("away_player_impact", {}).get("missing_key_players", []),
                 "data_sources": data.get("data_sources", []),
+                "h2h": h2h,
+                "home_scorers": home_scorers,
+                "away_scorers": away_scorers,
+                "home_1st_scorers": home_1st,
+                "away_1st_scorers": away_1st,
+                "top_scorers_count": len(top_scorers),
             },
         }
 
