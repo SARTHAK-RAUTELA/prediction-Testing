@@ -4,7 +4,10 @@ and FIFA 2026 live tournament context (xG, playing style, momentum).
 Produces final expected goals (λ) used for all market calculations.
 """
 from typing import Dict, Tuple, Optional, List
-from config import MODEL_WEIGHTS, HOME_ADVANTAGE, WC2026_OBSERVED_AVG_GOALS, KO_LAMBDA_REDUCTION
+from config import (
+    MODEL_WEIGHTS, HOME_ADVANTAGE, WC2026_OBSERVED_AVG_GOALS,
+    KO_LAMBDA_REDUCTION, altitude_goal_factor,
+)
 from models.poisson_model import build_score_matrix
 from models.elo_model import expected_goals_from_elo, win_probability, get_team_elo, load_elo_ratings
 from models.form_analyzer import (
@@ -140,6 +143,14 @@ def _golden_boot_boost(team: str, lineup: List[Dict], top_scorers_wc: Dict) -> f
     return 1.0
 
 
+def _altitude_adjustment(lam_h: float, lam_a: float, venue_city: str) -> Tuple[float, float]:
+    """Boost both lambdas symmetrically at high-altitude venues."""
+    factor = altitude_goal_factor(venue_city)
+    if factor == 1.0:
+        return lam_h, lam_a
+    return round(min(4.50, lam_h * factor), 3), round(min(4.50, lam_a * factor), 3)
+
+
 def compute_lambdas(
     home_team: str,
     away_team: str,
@@ -154,6 +165,7 @@ def compute_lambdas(
     elo_ratings: Optional[Dict] = None,
     stage: str = "group_stage",
     top_scorers_wc: Optional[Dict] = None,
+    venue_city: str = "",
 ) -> Tuple[float, float, Dict]:
     """
     Compute composite λ_home and λ_away from all available signals.
@@ -265,6 +277,10 @@ def compute_lambdas(
     lam_h = round(min(4.50, lam_h * home_gb), 3)
     lam_a = round(min(4.50, lam_a * away_gb), 3)
 
+    # --- Altitude adjustment ---
+    altitude_factor = altitude_goal_factor(venue_city)
+    lam_h, lam_a = _altitude_adjustment(lam_h, lam_a, venue_city)
+
     diagnostics = {
         "elo_home": elo_home,
         "elo_away": elo_away,
@@ -290,6 +306,8 @@ def compute_lambdas(
         "ko_reduction_applied": stage in {"round_of_32","round_of_16","quarter_final","semi_final","final"},
         "home_golden_boot_boost": home_gb,
         "away_golden_boot_boost": away_gb,
+        "venue_city": venue_city,
+        "altitude_factor": altitude_factor,
     }
 
     return lam_h, lam_a, diagnostics

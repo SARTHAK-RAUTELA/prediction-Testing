@@ -77,6 +77,7 @@ class PredictionEngine:
             is_neutral=True,  # FIFA 2026 in USA/Canada/Mexico — mostly neutral
             elo_ratings=self.elo_ratings,
             stage=stage,
+            venue_city=venue_city,
         )
 
         # Fetch WC top scorers for goalscorer model

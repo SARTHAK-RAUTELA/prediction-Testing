@@ -48,6 +48,43 @@ FIFA_WC_CODES = ["WC", "FIFA2026", "WC2026"]
 # Raised from -0.13 to -0.15 based on 72 group stage games showing higher 0-0/1-0 rate
 DIXON_COLES_RHO = -0.15
 
+# FIFA 2026 host city altitudes in metres above sea level.
+# Only cities that meaningfully affect ball physics / stamina are listed;
+# all other WC 2026 venues (New York, LA, Dallas, Miami, Toronto, etc.) are ≤ 200 m.
+VENUE_ALTITUDES = {
+    "mexico city": 2240,   # Estadio Azteca — significant
+    "azteca":      2240,
+    "guadalajara": 1566,   # Estadio Akron — notable
+    "denver":      1609,   # Empower Field at Mile High — notable
+    "monterrey":    538,   # Estadio BBVA — marginal
+    "kansas city":  325,   # Arrowhead Stadium — negligible but listed for completeness
+}
+
+
+def altitude_goal_factor(city: str) -> float:
+    """
+    Lambda multiplier for altitude effect — applied symmetrically to both teams.
+    At altitude: thinner air makes the ball travel faster and curve more unpredictably,
+    goalkeeper reactions are harder to calibrate, and both defences fatigue faster
+    in the second half → net effect is more goals per game.
+    Empirical basis: South American WC qualifiers + WC 2010 (Johannesburg 1,753 m).
+    """
+    city_lower = (city or "").lower()
+    altitude_m = 0
+    for name, alt in VENUE_ALTITUDES.items():
+        if name in city_lower:
+            altitude_m = alt
+            break
+    if altitude_m >= 2000:
+        return 1.10   # +10 % — Mexico City (Azteca)
+    if altitude_m >= 1500:
+        return 1.06   # +6 %  — Denver / Guadalajara
+    if altitude_m >= 1000:
+        return 1.03   # +3 %
+    if altitude_m >= 500:
+        return 1.01   # +1 %  — Monterrey
+    return 1.0        # sea-level — no adjustment
+
 # Model weights for composite prediction
 MODEL_WEIGHTS = {
     "poisson": 0.40,
