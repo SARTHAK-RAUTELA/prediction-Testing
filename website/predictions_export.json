@@ -1,0 +1,206 @@
+{
+  "prediction_date": "2026-06-29",
+  "stage": "round_of_32",
+  "generated_at": "June 29, 2026",
+  "fixture_count": 6,
+  "predictions": [
+    {
+      "home": "Brazil",
+      "away": "Japan",
+      "venue": "",
+      "kickoff": "2026-06-29T17:00",
+      "stage": "round_of_32",
+      "lambda_home": 0,
+      "lambda_away": 0,
+      "markets": {
+        "home_win": 0,
+        "draw": 0,
+        "away_win": 0,
+        "btts_yes": 0,
+        "over_2_5": 0,
+        "under_2_5": 0
+      },
+      "predicted_score": {},
+      "confidence": {
+        "total": 45.5,
+        "meets_threshold": false,
+        "components": {
+          "favoritism_strength": 29.3,
+          "data_quality": 54.2,
+          "model_agreement": 76.1,
+          "lineup_certainty": 70.0,
+          "market_consensus": 50.0
+        },
+        "predicted_outcome": "Home Win",
+        "predicted_outcome_prob": 52.9,
+        "threshold": 93.0
+      },
+      "value_bets": []
+    },
+    {
+      "home": "Germany",
+      "away": "Paraguay",
+      "venue": "",
+      "kickoff": "2026-06-29T20:30",
+      "stage": "round_of_32",
+      "lambda_home": 0,
+      "lambda_away": 0,
+      "markets": {
+        "home_win": 0,
+        "draw": 0,
+        "away_win": 0,
+        "btts_yes": 0,
+        "over_2_5": 0,
+        "under_2_5": 0
+      },
+      "predicted_score": {},
+      "confidence": {
+        "total": 59.4,
+        "meets_threshold": false,
+        "components": {
+          "favoritism_strength": 64.4,
+          "data_quality": 60.0,
+          "model_agreement": 75.4,
+          "lineup_certainty": 70.0,
+          "market_consensus": 50.0
+        },
+        "predicted_outcome": "Home Win",
+        "predicted_outcome_prob": 76.3,
+        "threshold": 93.0
+      },
+      "value_bets": []
+    },
+    {
+      "home": "Netherlands",
+      "away": "Morocco",
+      "venue": "",
+      "kickoff": "2026-06-30T01:00",
+      "stage": "round_of_32",
+      "lambda_home": 0,
+      "lambda_away": 0,
+      "markets": {
+        "home_win": 0,
+        "draw": 0,
+        "away_win": 0,
+        "btts_yes": 0,
+        "over_2_5": 0,
+        "under_2_5": 0
+      },
+      "predicted_score": {},
+      "confidence": {
+        "total": 39.8,
+        "meets_threshold": false,
+        "components": {
+          "favoritism_strength": 30.2,
+          "data_quality": 60.0,
+          "model_agreement": 44.9,
+          "lineup_certainty": 70.0,
+          "market_consensus": 50.0
+        },
+        "predicted_outcome": "Home Win",
+        "predicted_outcome_prob": 53.5,
+        "threshold": 93.0
+      },
+      "value_bets": []
+    },
+    {
+      "home": "Ivory Coast",
+      "away": "Norway",
+      "venue": "",
+      "kickoff": "2026-06-30T17:00",
+      "stage": "round_of_32",
+      "lambda_home": 0,
+      "lambda_away": 0,
+      "markets": {
+        "home_win": 0,
+        "draw": 0,
+        "away_win": 0,
+        "btts_yes": 0,
+        "over_2_5": 0,
+        "under_2_5": 0
+      },
+      "predicted_score": {},
+      "confidence": {
+        "total": 45.9,
+        "meets_threshold": false,
+        "components": {
+          "favoritism_strength": 32.6,
+          "data_quality": 60.0,
+          "model_agreement": 66.0,
+          "lineup_certainty": 70.0,
+          "market_consensus": 50.0
+        },
+        "predicted_outcome": "Away Win",
+        "predicted_outcome_prob": 55.1,
+        "threshold": 93.0
+      },
+      "value_bets": []
+    },
+    {
+      "home": "France",
+      "away": "Sweden",
+      "venue": "",
+      "kickoff": "2026-06-30T21:00",
+      "stage": "round_of_32",
+      "lambda_home": 0,
+      "lambda_away": 0,
+      "markets": {
+        "home_win": 0,
+        "draw": 0,
+        "away_win": 0,
+        "btts_yes": 0,
+        "over_2_5": 0,
+        "under_2_5": 0
+      },
+      "predicted_score": {},
+      "confidence": {
+        "total": 41.2,
+        "meets_threshold": false,
+        "components": {
+          "favoritism_strength": 20.2,
+          "data_quality": 60.0,
+          "model_agreement": 64.5,
+          "lineup_certainty": 70.0,
+          "market_consensus": 50.0
+        },
+        "predicted_outcome": "Home Win",
+        "predicted_outcome_prob": 46.8,
+        "threshold": 93.0
+      },
+      "value_bets": []
+    },
+    {
+      "home": "Lincoln Red Imps",
+      "away": "Inter Club d'Escaldes",
+      "venue": "Europa Point Stadium",
+      "kickoff": "2026-07-07",
+      "stage": "round_of_32",
+      "lambda_home": 0,
+      "lambda_away": 0,
+      "markets": {
+        "home_win": 0,
+        "draw": 0,
+        "away_win": 0,
+        "btts_yes": 0,
+        "over_2_5": 0,
+        "under_2_5": 0
+      },
+      "predicted_score": {},
+      "confidence": {
+        "total": 26.7,
+        "meets_threshold": false,
+        "components": {
+          "favoritism_strength": 4.8,
+          "data_quality": 21.7,
+          "model_agreement": 74.1,
+          "lineup_certainty": 70.0,
+          "market_consensus": 50.0
+        },
+        "predicted_outcome": "Home Win",
+        "predicted_outcome_prob": 36.5,
+        "threshold": 93.0
+      },
+      "value_bets": []
+    }
+  ]
+}

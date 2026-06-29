@@ -69,7 +69,7 @@ input,select,textarea{font-family:inherit;}
   <!-- HERO -->
   <div class="hero-grid" style="display:grid;grid-template-columns:1.15fr 0.85fr;gap:26px;align-items:stretch;margin-top:30px;">
     <div style="display:flex;flex-direction:column;justify-content:center;min-width:0;">
-      <div style="display:inline-block;align-self:flex-start;background:#FF2B7A;color:#fff;font-family:'Bangers',cursive;letter-spacing:1px;font-size:14px;padding:5px 12px;border:3px solid #11100C;box-shadow:4px 4px 0 #11100C;transform:rotate(-2deg);margin-bottom:16px;">⚡ ROUND OF 32 · JUNE 29</div>
+      <div id="hero-date-badge" style="display:inline-block;align-self:flex-start;background:#FF2B7A;color:#fff;font-family:'Bangers',cursive;letter-spacing:1px;font-size:14px;padding:5px 12px;border:3px solid #11100C;box-shadow:4px 4px 0 #11100C;transform:rotate(-2deg);margin-bottom:16px;">⚡ ROUND OF 32 · JUNE 29</div>
       <h1 style="font-family:'Bangers',cursive;font-weight:400;font-size:clamp(46px,7vw,92px);line-height:.9;letter-spacing:1px;margin:0;text-transform:uppercase;">
         <span style="display:block;color:#1B4FE0;text-shadow:4px 4px 0 #11100C;">Predict the</span>
         <span style="display:block;color:#F0341B;text-shadow:4px 4px 0 #11100C;">Beautiful</span>
@@ -152,7 +152,7 @@ input,select,textarea{font-family:inherit;}
   <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-top:30px;">
     <div>
       <div style="font-family:'Bangers',cursive;font-size:clamp(34px,5vw,52px);letter-spacing:1px;line-height:1;">R32 PREDICTIONS</div>
-      <div style="font-size:14px;font-weight:600;opacity:.75;margin-top:4px;">June 29, 2026 · 6 fixtures · every λ, edge &amp; Kelly stake shown</div>
+      <div id="pred-date-subtitle" style="font-size:14px;font-weight:600;opacity:.75;margin-top:4px;">June 29, 2026 · 6 fixtures · every λ, edge &amp; Kelly stake shown</div>
     </div>
     <button onclick="openModal()" style="font-family:'Bangers',cursive;letter-spacing:1px;font-size:18px;padding:11px 20px;border:3px solid #11100C;background:#FF2B7A;color:#fff;box-shadow:5px 5px 0 #11100C;">+ ADD PREDICTION</button>
   </div>
@@ -244,7 +244,7 @@ input,select,textarea{font-family:inherit;}
 <div style="background:#11100C;color:#F7EFD8;border-top:4px solid #11100C;padding:26px 20px;">
   <div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
     <div style="font-family:'Bangers',cursive;letter-spacing:2px;font-size:24px;text-shadow:2px 2px 0 #FF2B7A;">HEXDRIFT</div>
-    <div style="font-size:12px;opacity:.65;max-width:520px;line-height:1.5;">Predictions are model output for entertainment &amp; analytics. Poisson · Dixon–Coles (ρ=−0.15) · ELO(72) · Kelly 25%. Bet responsibly — λ doesn't guarantee goals.</div>
+    <div style="font-size:12px;opacity:.65;max-width:520px;line-height:1.5;">Predictions are model output for entertainment &amp; analytics. Poisson · Dixon–Coles (ρ=−0.15) · ELO(72) · Kelly 25%. Bet responsibly — λ doesn't guarantee goals.<br><span id="footer-last-updated" style="opacity:.8;"></span></div>
   </div>
 </div>
 
@@ -778,6 +778,51 @@ function renderTicker() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  PREDICTION DATE  (from predictions_export.json)
+// ═══════════════════════════════════════════════════════
+function _stageLabel(stage) {
+  const map = {
+    group_stage: 'GROUP STAGE', round_of_32: 'ROUND OF 32',
+    round_of_16: 'ROUND OF 16', quarter_final: 'QUARTER-FINALS',
+    semi_final: 'SEMI-FINALS', final: 'FINAL',
+  };
+  return map[stage] || (stage || '').replace(/_/g,' ').toUpperCase();
+}
+
+function _shortDate(iso) {
+  // "2026-06-29" → "JUNE 29"
+  if (!iso) return '';
+  try {
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month:'long', day:'numeric' }).toUpperCase();
+  } catch { return iso; }
+}
+
+async function loadPredictionMeta() {
+  try {
+    const res = await fetch('./predictions_export.json', { cache: 'no-cache' });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const stage      = _stageLabel(data.stage);
+    const shortDate  = _shortDate(data.prediction_date);
+    const longDate   = data.generated_at || data.prediction_date || '';
+    const count      = data.fixture_count != null ? data.fixture_count : '';
+
+    const badge = document.getElementById('hero-date-badge');
+    if (badge) badge.textContent = `⚡ ${stage} · ${shortDate}`;
+
+    const sub = document.getElementById('pred-date-subtitle');
+    if (sub) sub.textContent = `${longDate} · ${count} fixture${count !== 1 ? 's' : ''} · every λ, edge & Kelly stake shown`;
+
+    const footer = document.getElementById('footer-last-updated');
+    if (footer) footer.textContent = `Last updated: ${longDate}`;
+  } catch (e) {
+    // JSON unavailable — keep static fallback text already in HTML
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
 renderNav();
@@ -785,6 +830,7 @@ renderTicker();
 renderAlgos();
 renderRecent();
 animateCounters();
+loadPredictionMeta();
 </script>
 </body>
 </html>
