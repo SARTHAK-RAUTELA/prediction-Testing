@@ -801,6 +801,20 @@ setInterval(()=>{
 // ═══════════════════════════════════════════════════════
 //  LIVE API FETCH — ESPN (no key) primary, fd + rapid fallback
 // ═══════════════════════════════════════════════════════
+async function fetchESPNScoringPlays(eventId) {
+  try {
+    const res = await fetch(
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eventId}`,
+      { mode:'cors' }
+    );
+    if (res.ok) {
+      const d = await res.json();
+      return d.scoringPlays || null;
+    }
+  } catch(e) {}
+  return null;
+}
+
 async function fetchLiveMatchAPI() {
   // ── ESPN unofficial API — no key required ──
   try {
@@ -815,15 +829,26 @@ async function fetchLiveMatchAPI() {
     if (res.ok) {
       const data = await res.json();
       const events = data.events || [];
-      // Priority 1: genuinely live match
-      const live = events.find(e => e.status?.type?.state === 'in');
-      if (live) return { src:'espn', live:true, done:false, event: live };
-      // Priority 2: most recently finished match — show final score
+      // Priority 1: live match — check state AND type.name for robustness
+      const LIVE_NAMES = ['STATUS_IN_PROGRESS','STATUS_HALFTIME','STATUS_END_PERIOD','STATUS_OVERTIME'];
+      const live = events.find(e => {
+        const st = e.status?.type;
+        return st?.state === 'in' || LIVE_NAMES.includes(st?.name);
+      });
+      if (live) {
+        const scoringPlays = await fetchESPNScoringPlays(live.id);
+        return { src:'espn', live:true, done:false, event: live, scoringPlays };
+      }
+      // Priority 2: most recently finished match — show final score + goalscorers
       const finished = events.filter(e => e.status?.type?.state === 'post');
-      if (finished.length) return { src:'espn', live:false, done:true, event: finished[finished.length-1] };
+      if (finished.length) {
+        const last = finished[finished.length-1];
+        const scoringPlays = await fetchESPNScoringPlays(last.id);
+        return { src:'espn', live:false, done:true, event: last, scoringPlays };
+      }
       // Priority 3: next scheduled match
       const next = events.find(e => e.status?.type?.state === 'pre');
-      if (next) return { src:'espn', live:false, done:false, event: next };
+      if (next) return { src:'espn', live:false, done:false, event: next, scoringPlays: null };
     }
   } catch(e) { console.warn('ESPN:', e); }
 
@@ -909,19 +934,22 @@ function parseGoalsRapid(events, homeId) {
     }));
 }
 
-// Parse goals from ESPN competition details array
-function parseGoalsESPN(comp, homeTeamId) {
-  return (comp.details || [])
-    .filter(d => d.scoringPlay)
-    .map(d => {
-      const clockStr = d.clock?.displayValue || '';
-      const min = clockStr.split(':')[0] || '?';
-      const name = (d.athletesInvolved || [])[0]?.displayName || '?';
-      const isHome = String(d.team?.id) === String(homeTeamId);
-      const typeText = (d.type?.text || '').toLowerCase();
-      const type = typeText.includes('penalty') ? 'penalty' : typeText.includes('own') ? 'own' : 'goal';
-      return { min, name, isHome, type };
-    });
+// Parse goals from ESPN — prefers summary scoringPlays, falls back to scoreboard details
+function parseGoalsESPN(comp, homeTeamId, scoringPlays) {
+  // scoringPlays from summary are already filtered to goals only
+  // details from scoreboard need filtering by scoringPlay flag
+  const items = scoringPlays
+    ? scoringPlays
+    : (comp.details || []).filter(d => d.scoringPlay);
+  return items.map(d => {
+    const clockStr = d.clock?.displayValue || '';
+    const min = clockStr.split(':')[0] || '?';
+    const name = (d.athletesInvolved || [])[0]?.displayName || '?';
+    const isHome = String(d.team?.id) === String(homeTeamId);
+    const typeText = (d.type?.text || '').toLowerCase();
+    const type = typeText.includes('penalty') ? 'penalty' : typeText.includes('own') ? 'own' : 'goal';
+    return { min, name, isHome, type };
+  });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -950,7 +978,7 @@ function renderHeroMatch() {
     venue   = comp.venue?.fullName || '';
     stage   = ev.competitions?.[0]?.notes?.[0]?.headline || '';
     kickoff = (isLive || isDone) ? '' : new Date(ev.date).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + ' ET';
-    goals   = parseGoalsESPN(comp, homeComp.team?.id);
+    goals   = parseGoalsESPN(comp, homeComp.team?.id, api.scoringPlays);
 
   } else if (api && api.src === 'fd') {
     const m = api.m;
