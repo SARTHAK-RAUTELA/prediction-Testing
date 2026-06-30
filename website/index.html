@@ -44,7 +44,7 @@ input,select,textarea{font-family:inherit;}
 
 <!-- TICKER -->
 <div style="background:#11100C;color:#F7EFD8;overflow:hidden;white-space:nowrap;border-bottom:4px solid #11100C;">
-  <div id="ticker-inner" style="overflow:hidden;white-space:nowrap;font-family:'Bangers',cursive;letter-spacing:1.5px;font-size:15px;padding:7px 0;line-height:1.4;"></div>
+  <div id="ticker-inner" style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:0;font-family:'Bangers',cursive;letter-spacing:1.5px;font-size:15px;padding:7px 0;"></div>
 </div>
 
 <!-- NAV -->
@@ -771,10 +771,7 @@ function renderTicker() {
       + `<span style="color:rgba(247,239,216,.35);padding:0 10px;">·</span>`
       + `<span style="color:rgba(247,239,216,.55);">${p.time}</span>`;
   }
-  const chunk = upcoming.map(matchChunk).join('');
-  const dur = Math.max(20, upcoming.length * 9);
-  document.getElementById('ticker-inner').innerHTML =
-    `<span style="display:inline-block;animation:hxmarq ${dur}s linear infinite;">${chunk}${chunk}</span>`;
+  document.getElementById('ticker-inner').innerHTML = upcoming.map(matchChunk).join('');
 }
 
 // ═══════════════════════════════════════════════════════
