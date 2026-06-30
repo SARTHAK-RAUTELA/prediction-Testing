@@ -460,7 +460,26 @@ const BRACKET_FINAL = { a:'🇦🇷 Argentina', aS:'2', b:'🇫🇷 France', bS:
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
-let S = { page:'home', filter:'all', liveTab:'events', userPreds:[] };
+// ═══════════════════════════════════════════════════════
+//  LIVE API CONFIG — API-Football (RapidAPI)
+//  Sign up at rapidapi.com/api-sports/api/api-football
+// ═══════════════════════════════════════════════════════
+const LIVE_API = {
+  key:    '',                              // ← paste your RapidAPI key here
+  host:   'api-football-v1.p.rapidapi.com',
+  league: 1,                               // FIFA World Cup
+  season: 2026,
+};
+
+// Map BASE_PREDS id → API-Football fixture ID
+// Look up IDs at: GET /fixtures?league=1&season=2026&team=...
+const FIXTURE_MAP = {
+  'ned-mar': null,
+  'civ-nor': null,
+  'fra-swe': null,
+};
+
+let S = { page:'home', filter:'all', liveTab:'events', userPreds:[], apiMatch:null };
 try { const sv = localStorage.getItem('hx_preds_v2'); if(sv) S.userPreds = JSON.parse(sv); } catch(e){}
 
 // ═══════════════════════════════════════════════════════
@@ -749,50 +768,123 @@ setInterval(()=>{
 },1000);
 
 // ═══════════════════════════════════════════════════════
+//  LIVE API FETCH
+// ═══════════════════════════════════════════════════════
+async function fetchLiveMatchAPI() {
+  if (!LIVE_API.key) return null;
+  try {
+    // Check for any live WC 2026 match
+    const res = await fetch(
+      `https://${LIVE_API.host}/v3/fixtures?live=all&league=${LIVE_API.league}&season=${LIVE_API.season}`,
+      { headers: { 'x-rapidapi-key': LIVE_API.key, 'x-rapidapi-host': LIVE_API.host } }
+    );
+    const data = await res.json();
+    if (data.response && data.response.length > 0) return { type:'live', fixture: data.response[0] };
+
+    // No live match — fetch next upcoming by fixture ID
+    const nextLocal = BASE_PREDS.find(p => p.status === 'upcoming');
+    if (!nextLocal) return null;
+    const fid = FIXTURE_MAP[nextLocal.id];
+    if (!fid) return null;
+    const res2 = await fetch(
+      `https://${LIVE_API.host}/v3/fixtures?id=${fid}`,
+      { headers: { 'x-rapidapi-key': LIVE_API.key, 'x-rapidapi-host': LIVE_API.host } }
+    );
+    const data2 = await res2.json();
+    if (data2.response && data2.response.length > 0) return { type:'upcoming', fixture: data2.response[0] };
+    return null;
+  } catch(e) {
+    console.warn('Live API error:', e);
+    return null;
+  }
+}
+
+function goalEventsHTML(events) {
+  if (!events || !events.length) return '';
+  const goals = events.filter(e => e.type === 'Goal' || e.type === 'Own Goal');
+  if (!goals.length) return '';
+  return `<div style="width:100%;border-top:2px solid rgba(247,239,216,.2);padding-top:10px;display:flex;flex-direction:column;gap:5px;">
+    ${goals.map(g => {
+      const isOG = g.type === 'Own Goal';
+      const side = g.team && g.teams && g.team.id === g.teams.home.id ? 'left' : 'right';
+      return `<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#fff;justify-content:${side==='left'?'flex-start':'flex-end'};">
+        ${side==='left' ? `<span style="color:#FFC21A;font-family:'Bangers',cursive;font-size:14px;">${g.time.elapsed}'</span><span>⚽${isOG?' (OG)':''}</span><span>${g.player.name}</span>` : `<span>${g.player.name}</span><span>⚽${isOG?' (OG)':''}</span><span style="color:#FFC21A;font-family:'Bangers',cursive;font-size:14px;">${g.time.elapsed}'</span>`}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
 //  HERO MATCH PANEL — live match or next upcoming
 // ═══════════════════════════════════════════════════════
 function renderHeroMatch() {
   const el = document.getElementById('hero-match');
   if (!el) return;
-  const live = BASE_PREDS.find(p => p.status === 'live');
-  const match = live || BASE_PREDS.find(p => p.status === 'upcoming');
-  if (!match) {
-    el.innerHTML = `
-      <div style="position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 50% 42%,rgba(255,255,255,.16) 0deg 6deg,transparent 6deg 12deg);"></div>
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bangers',cursive;font-size:22px;color:#FFC21A;letter-spacing:2px;">NO UPCOMING MATCHES</div>`;
-    return;
+
+  // Determine match source: API data takes priority, fallback to local BASE_PREDS
+  const api = S.apiMatch;
+  let isLive = false, homeTeam, awayTeam, score, elapsed, venue, stage, events = [], kickoff;
+
+  if (api && api.fixture) {
+    const f = api.fixture;
+    isLive = api.type === 'live';
+    homeTeam = f.teams.home.name;
+    awayTeam = f.teams.away.name;
+    score = isLive
+      ? `${f.goals.home ?? 0}–${f.goals.away ?? 0}`
+      : '–:–';
+    elapsed = isLive ? `${f.fixture.status.elapsed}'` : null;
+    venue = f.fixture.venue ? `${f.fixture.venue.name}, ${f.fixture.venue.city}` : '';
+    stage = f.league ? f.league.round : '';
+    events = (f.events || []).map(e => ({ ...e, teams: f.teams }));
+    kickoff = '';
+  } else {
+    // No API data — use local BASE_PREDS
+    const localLive = BASE_PREDS.find(p => p.status === 'live');
+    const match = localLive || BASE_PREDS.find(p => p.status === 'upcoming');
+    if (!match) {
+      el.innerHTML = `
+        <div style="position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 50% 42%,rgba(255,255,255,.16) 0deg 6deg,transparent 6deg 12deg);"></div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bangers',cursive;font-size:22px;color:#FFC21A;letter-spacing:2px;">NO UPCOMING MATCHES</div>`;
+      return;
+    }
+    isLive = match.status === 'live';
+    homeTeam = match.home; awayTeam = match.away;
+    score = match.result || '–:–';
+    venue = match.venue; stage = match.stage;
+    kickoff = match.time;
   }
-  const isLive = match.status === 'live';
-  const homeLogo = tLogo(match.home, 56) || `<span style="font-size:48px;line-height:1;">${match.hf}</span>`;
-  const awayLogo = tLogo(match.away, 56) || `<span style="font-size:48px;line-height:1;">${match.af}</span>`;
-  const score = match.result || '–:–';
+
+  const homeLogo = tLogo(homeTeam, 56) || `<span style="font-size:48px;line-height:1;">⚽</span>`;
+  const awayLogo = tLogo(awayTeam, 56) || `<span style="font-size:48px;line-height:1;">⚽</span>`;
+
   el.innerHTML = `
     <div style="position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 50% 42%,rgba(255,255,255,.16) 0deg 6deg,transparent 6deg 12deg);"></div>
     <div style="position:absolute;inset:0;background-image:radial-gradient(circle,rgba(17,16,12,.18) 1.6px,transparent 1.7px);background-size:11px 11px;"></div>
-    <div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;">
+    <div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:22px;">
       ${isLive
-        ? `<div style="display:flex;align-items:center;gap:8px;background:#F0341B;color:#fff;font-family:'Bangers',cursive;font-size:15px;letter-spacing:2px;padding:5px 16px;border:3px solid #11100C;box-shadow:3px 3px 0 #11100C;"><span style="width:9px;height:9px;border-radius:50%;background:#fff;display:inline-block;animation:hxblink 1s infinite;"></span> LIVE NOW</div>`
+        ? `<div style="display:flex;align-items:center;gap:8px;background:#F0341B;color:#fff;font-family:'Bangers',cursive;font-size:15px;letter-spacing:2px;padding:5px 16px;border:3px solid #11100C;box-shadow:3px 3px 0 #11100C;"><span style="width:9px;height:9px;border-radius:50%;background:#fff;display:inline-block;animation:hxblink 1s infinite;"></span> LIVE · ${elapsed || ''}</div>`
         : `<div style="background:#FFC21A;color:#11100C;font-family:'Bangers',cursive;font-size:14px;letter-spacing:2px;padding:5px 16px;border:3px solid #11100C;box-shadow:3px 3px 0 #11100C;">⚡ NEXT MATCH</div>`}
       <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;width:100%;">
         <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
           ${homeLogo}
-          <div style="font-family:'Bangers',cursive;font-size:18px;color:#fff;letter-spacing:1px;text-shadow:2px 2px 0 #11100C;text-align:center;">${match.home.toUpperCase()}</div>
+          <div style="font-family:'Bangers',cursive;font-size:17px;color:#fff;letter-spacing:1px;text-shadow:2px 2px 0 #11100C;text-align:center;">${homeTeam.toUpperCase()}</div>
         </div>
         <div style="text-align:center;">
           <div style="font-family:'Bangers',cursive;font-size:46px;line-height:1;color:#FFC21A;text-shadow:3px 3px 0 #11100C;font-variant-numeric:tabular-nums;">${score}</div>
-          <div style="font-family:'Bangers',cursive;font-size:18px;color:#fff;letter-spacing:1px;margin-top:6px;">${match.time}</div>
+          <div style="font-family:'Bangers',cursive;font-size:16px;color:rgba(247,239,216,.8);letter-spacing:1px;margin-top:6px;">${kickoff || stage || ''}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
           ${awayLogo}
-          <div style="font-family:'Bangers',cursive;font-size:18px;color:#fff;letter-spacing:1px;text-shadow:2px 2px 0 #11100C;text-align:center;">${match.away.toUpperCase()}</div>
+          <div style="font-family:'Bangers',cursive;font-size:17px;color:#fff;letter-spacing:1px;text-shadow:2px 2px 0 #11100C;text-align:center;">${awayTeam.toUpperCase()}</div>
         </div>
       </div>
-      <div style="font-size:11px;color:rgba(247,239,216,.65);letter-spacing:.5px;text-align:center;font-weight:600;">${match.venue}</div>
-      <div style="font-family:'Bangers',cursive;font-size:13px;letter-spacing:1px;color:rgba(247,239,216,.45);">${match.stage}</div>
+      ${goalEventsHTML(events)}
+      <div style="font-size:11px;color:rgba(247,239,216,.55);letter-spacing:.5px;text-align:center;font-weight:600;">${venue}</div>
     </div>
     ${isLive
       ? `<div style="position:absolute;top:-6px;right:-6px;background:#F0341B;color:#fff;font-family:'Bangers',cursive;font-size:22px;letter-spacing:1px;padding:6px 14px 8px;border:3px solid #11100C;transform:rotate(6deg);box-shadow:3px 3px 0 #11100C;animation:hxfloat 3.4s ease-in-out infinite;">LIVE!</div>`
-      : `<div style="position:absolute;top:-6px;right:-6px;background:#4FC72A;color:#11100C;font-family:'Bangers',cursive;font-size:22px;letter-spacing:1px;padding:6px 14px 8px;border:3px solid #11100C;transform:rotate(6deg);box-shadow:3px 3px 0 #11100C;animation:hxfloat 3.4s ease-in-out infinite;">KO ${match.time}</div>`}`;
+      : `<div style="position:absolute;top:-6px;right:-6px;background:#4FC72A;color:#11100C;font-family:'Bangers',cursive;font-size:22px;letter-spacing:1px;padding:6px 14px 8px;border:3px solid #11100C;transform:rotate(6deg);box-shadow:3px 3px 0 #11100C;animation:hxfloat 3.4s ease-in-out infinite;">${kickoff ? 'KO '+kickoff : 'SOON'}</div>`}`;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -817,10 +909,18 @@ function renderTicker() {
 renderNav();
 renderHeroMatch();
 renderTicker();
-setInterval(function(){ renderHeroMatch(); renderTicker(); }, 60000);
 renderAlgos();
 renderRecent();
 animateCounters();
+
+// Live API polling — every 30 seconds
+async function pollLive() {
+  S.apiMatch = await fetchLiveMatchAPI();
+  renderHeroMatch();
+  renderTicker();
+}
+pollLive();
+setInterval(pollLive, 30000);
 </script>
 </body>
 </html>
