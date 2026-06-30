@@ -815,10 +815,15 @@ async function fetchLiveMatchAPI() {
     if (res.ok) {
       const data = await res.json();
       const events = data.events || [];
+      // Priority 1: genuinely live match
       const live = events.find(e => e.status?.type?.state === 'in');
-      if (live) return { src:'espn', live:true, event: live };
+      if (live) return { src:'espn', live:true, done:false, event: live };
+      // Priority 2: most recently finished match — show final score
+      const finished = events.filter(e => e.status?.type?.state === 'post');
+      if (finished.length) return { src:'espn', live:false, done:true, event: finished[finished.length-1] };
+      // Priority 3: next scheduled match
       const next = events.find(e => e.status?.type?.state === 'pre');
-      if (next) return { src:'espn', live:false, event: next };
+      if (next) return { src:'espn', live:false, done:false, event: next };
     }
   } catch(e) { console.warn('ESPN:', e); }
 
@@ -926,7 +931,7 @@ function renderHeroMatch() {
   const el = document.getElementById('hero-match');
   if (!el) return;
 
-  let isLive=false, homeTeam='', awayTeam='', score='–:–', elapsed='', venue='', stage='', kickoff='', goals=[];
+  let isLive=false, isDone=false, homeTeam='', awayTeam='', score='–:–', elapsed='', venue='', stage='', kickoff='', goals=[];
   const api = S.apiMatch;
 
   if (api && api.src === 'espn') {
@@ -935,15 +940,16 @@ function renderHeroMatch() {
     const homeComp = comp.competitors.find(c => c.homeAway === 'home') || {};
     const awayComp = comp.competitors.find(c => c.homeAway === 'away') || {};
     isLive   = api.live;
+    isDone   = api.done || false;
     homeTeam = homeComp.team?.displayName || homeComp.team?.name || '';
     awayTeam = awayComp.team?.displayName || awayComp.team?.name || '';
-    if (isLive) {
+    if (isLive || isDone) {
       score   = `${homeComp.score || 0}–${awayComp.score || 0}`;
       elapsed = ev.status?.type?.shortDetail || ev.status?.displayClock || '';
     }
     venue   = comp.venue?.fullName || '';
     stage   = ev.competitions?.[0]?.notes?.[0]?.headline || '';
-    kickoff = isLive ? '' : new Date(ev.date).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + ' ET';
+    kickoff = (isLive || isDone) ? '' : new Date(ev.date).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + ' ET';
     goals   = parseGoalsESPN(comp, homeComp.team?.id);
 
   } else if (api && api.src === 'fd') {
@@ -998,7 +1004,9 @@ function renderHeroMatch() {
              <span style="width:9px;height:9px;border-radius:50%;background:#fff;display:inline-block;animation:hxblink 1s infinite;"></span>
              LIVE${elapsed ? ' · '+elapsed : ''}
            </div>`
-        : `<div style="background:#FFC21A;color:#11100C;font-family:'Bangers',cursive;font-size:14px;letter-spacing:2px;padding:5px 16px;border:3px solid #11100C;box-shadow:3px 3px 0 #11100C;">⚡ NEXT MATCH</div>`}
+        : isDone
+          ? `<div style="background:#444;color:#F7EFD8;font-family:'Bangers',cursive;font-size:15px;letter-spacing:2px;padding:5px 16px;border:3px solid #11100C;box-shadow:3px 3px 0 #11100C;">FULL TIME${elapsed ? ' · '+elapsed : ''}</div>`
+          : `<div style="background:#FFC21A;color:#11100C;font-family:'Bangers',cursive;font-size:14px;letter-spacing:2px;padding:5px 16px;border:3px solid #11100C;box-shadow:3px 3px 0 #11100C;">⚡ NEXT MATCH</div>`}
       <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;width:100%;">
         <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
           ${homeLogo}
@@ -1018,7 +1026,9 @@ function renderHeroMatch() {
     </div>
     ${isLive
       ? `<div style="position:absolute;top:-6px;right:-6px;background:#F0341B;color:#fff;font-family:'Bangers',cursive;font-size:22px;letter-spacing:1px;padding:6px 14px 8px;border:3px solid #11100C;transform:rotate(6deg);box-shadow:3px 3px 0 #11100C;animation:hxfloat 3.4s ease-in-out infinite;">LIVE!</div>`
-      : `<div style="position:absolute;top:-6px;right:-6px;background:#4FC72A;color:#11100C;font-family:'Bangers',cursive;font-size:22px;letter-spacing:1px;padding:6px 14px 8px;border:3px solid #11100C;transform:rotate(6deg);box-shadow:3px 3px 0 #11100C;animation:hxfloat 3.4s ease-in-out infinite;">${kickoff ? 'KO '+kickoff : 'SOON'}</div>`}`;
+      : isDone
+        ? `<div style="position:absolute;top:-6px;right:-6px;background:#555;color:#F7EFD8;font-family:'Bangers',cursive;font-size:22px;letter-spacing:1px;padding:6px 14px 8px;border:3px solid #11100C;transform:rotate(6deg);box-shadow:3px 3px 0 #11100C;">FT</div>`
+        : `<div style="position:absolute;top:-6px;right:-6px;background:#4FC72A;color:#11100C;font-family:'Bangers',cursive;font-size:22px;letter-spacing:1px;padding:6px 14px 8px;border:3px solid #11100C;transform:rotate(6deg);box-shadow:3px 3px 0 #11100C;animation:hxfloat 3.4s ease-in-out infinite;">${kickoff ? 'KO '+kickoff : 'SOON'}</div>`}`;
 }
 
 // ═══════════════════════════════════════════════════════
