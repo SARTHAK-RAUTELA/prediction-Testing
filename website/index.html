@@ -69,7 +69,7 @@ input,select,textarea{font-family:inherit;}
   <!-- HERO -->
   <div class="hero-grid" style="display:grid;grid-template-columns:1.15fr 0.85fr;gap:26px;align-items:stretch;margin-top:30px;">
     <div style="display:flex;flex-direction:column;justify-content:center;min-width:0;">
-      <div id="hero-date-badge" style="display:inline-block;align-self:flex-start;background:#FF2B7A;color:#fff;font-family:'Bangers',cursive;letter-spacing:1px;font-size:14px;padding:5px 12px;border:3px solid #11100C;box-shadow:4px 4px 0 #11100C;transform:rotate(-2deg);margin-bottom:16px;">⚡ ROUND OF 32 · JUNE 29</div>
+      <div style="display:inline-block;align-self:flex-start;background:#FF2B7A;color:#fff;font-family:'Bangers',cursive;letter-spacing:1px;font-size:14px;padding:5px 12px;border:3px solid #11100C;box-shadow:4px 4px 0 #11100C;transform:rotate(-2deg);margin-bottom:16px;">⚡ ROUND OF 32 · JUNE 29</div>
       <h1 style="font-family:'Bangers',cursive;font-weight:400;font-size:clamp(46px,7vw,92px);line-height:.9;letter-spacing:1px;margin:0;text-transform:uppercase;">
         <span style="display:block;color:#1B4FE0;text-shadow:4px 4px 0 #11100C;">Predict the</span>
         <span style="display:block;color:#F0341B;text-shadow:4px 4px 0 #11100C;">Beautiful</span>
@@ -152,7 +152,7 @@ input,select,textarea{font-family:inherit;}
   <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-top:30px;">
     <div>
       <div style="font-family:'Bangers',cursive;font-size:clamp(34px,5vw,52px);letter-spacing:1px;line-height:1;">R32 PREDICTIONS</div>
-      <div id="pred-date-subtitle" style="font-size:14px;font-weight:600;opacity:.75;margin-top:4px;">June 29, 2026 · 6 fixtures · every λ, edge &amp; Kelly stake shown</div>
+      <div style="font-size:14px;font-weight:600;opacity:.75;margin-top:4px;">June 29, 2026 · 6 fixtures · every λ, edge &amp; Kelly stake shown</div>
     </div>
     <button onclick="openModal()" style="font-family:'Bangers',cursive;letter-spacing:1px;font-size:18px;padding:11px 20px;border:3px solid #11100C;background:#FF2B7A;color:#fff;box-shadow:5px 5px 0 #11100C;">+ ADD PREDICTION</button>
   </div>
@@ -244,7 +244,7 @@ input,select,textarea{font-family:inherit;}
 <div style="background:#11100C;color:#F7EFD8;border-top:4px solid #11100C;padding:26px 20px;">
   <div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
     <div style="font-family:'Bangers',cursive;letter-spacing:2px;font-size:24px;text-shadow:2px 2px 0 #FF2B7A;">HEXDRIFT</div>
-    <div style="font-size:12px;opacity:.65;max-width:520px;line-height:1.5;">Predictions are model output for entertainment &amp; analytics. Poisson · Dixon–Coles (ρ=−0.15) · ELO(72) · Kelly 25%. Bet responsibly — λ doesn't guarantee goals.<br><span id="footer-last-updated" style="opacity:.8;"></span></div>
+    <div style="font-size:12px;opacity:.65;max-width:520px;line-height:1.5;">Predictions are model output for entertainment &amp; analytics. Poisson · Dixon–Coles (ρ=−0.15) · ELO(72) · Kelly 25%. Bet responsibly — λ doesn't guarantee goals.</div>
   </div>
 </div>
 
@@ -470,35 +470,6 @@ const BRACKET_FINAL = { a:'🇦🇷 Argentina', aS:'2', b:'🇫🇷 France', bS:
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
-let LIVE_PREDS = null; // set by loadPredictionMeta() from predictions_export.json
-
-function jsonToPred(p) {
-  return {
-    id:       p.id,
-    home:     p.home,       away:     p.away,
-    hf:       p.flag_home || '⚽',
-    af:       p.flag_away || '⚽',
-    time:     p.time  || '',
-    venue:    p.venue || '',
-    stage:    p.stage || 'R32',
-    lh:       p.lambda_home  || 0,
-    la:       p.lambda_away  || 0,
-    sh:       p.score_home   || 0,
-    sa:       p.score_away   || 0,
-    pH:       p.prob_home    || 0,
-    pD:       p.prob_draw    || 0,
-    pA:       p.prob_away    || 0,
-    conf:     p.confidence   || 'MEDIUM',
-    betLabel: p.bet_label    || '',
-    edge:     p.edge         || 0,
-    odds:     p.odds,           // null when no bookmaker odds provided
-    kelly:    p.kelly        || 0,
-    note:     p.note         || '',
-    result:   p.result       || null,
-    status:   p.status       || 'upcoming',
-  };
-}
-
 let S = { page:'home', filter:'all', liveTab:'events', userPreds:[] };
 try { const sv = localStorage.getItem('hx_preds_v2'); if(sv) S.userPreds = JSON.parse(sv); } catch(e){}
 
@@ -607,10 +578,8 @@ function predCard(p) {
         </div>
         <div style="font-weight:700;font-size:16px;margin-top:3px;color:${isVal?'#FFC21A':'#11100C'};">${p.betLabel}</div>
         <div style="display:flex;gap:16px;margin-top:6px;font-size:12px;font-weight:600;color:${isVal?'#fff':'#11100C'};">
-          ${p.odds != null
-            ? `<span>Odds <strong style="font-variant-numeric:tabular-nums;">${p.odds.toFixed(2)}</strong></span>
-               <span>Kelly stake <strong style="font-variant-numeric:tabular-nums;">${p.kelly.toFixed(1)}%</strong></span>`
-            : `<span style="opacity:.7;font-size:11px;font-style:italic;">Model pick — no bookmaker odds</span>`}
+          <span>Odds <strong style="font-variant-numeric:tabular-nums;">${p.odds.toFixed(2)}</strong></span>
+          <span>Kelly stake <strong style="font-variant-numeric:tabular-nums;">${p.kelly.toFixed(1)}%</strong></span>
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -628,7 +597,7 @@ function renderPreds() {
   document.getElementById('filter-bar').innerHTML = FILTERS.map(f =>
     `<button onclick="setFilter('${f.k}')" style="font-family:'Bangers',cursive;letter-spacing:1px;font-size:14px;padding:7px 15px;border:3px solid #11100C;background:${S.filter===f.k?'#FF2B7A':'#fff'};color:${S.filter===f.k?'#fff':'#11100C'};box-shadow:3px 3px 0 #11100C;">${f.l}</button>`
   ).join('');
-  const all = [...S.userPreds, ...(LIVE_PREDS || BASE_PREDS)];
+  const all = [...S.userPreds, ...BASE_PREDS];
   const f = S.filter;
   const list = f==='high'?all.filter(p=>p.conf==='HIGH'):f==='med'?all.filter(p=>p.conf==='MEDIUM'):f==='low'?all.filter(p=>p.conf==='LOW'):f==='value'?all.filter(p=>p.edge>=10):all;
   document.getElementById('pred-grid').innerHTML = list.map(predCard).join('');
@@ -793,7 +762,7 @@ setInterval(()=>{
 //  TICKER — upcoming 3 matches
 // ═══════════════════════════════════════════════════════
 function renderTicker() {
-  const upcoming = (LIVE_PREDS || BASE_PREDS).filter(p => p.status === 'upcoming').slice(0, 3);
+  const upcoming = BASE_PREDS.filter(p => p.status === 'upcoming').slice(0, 3);
   const confBg = { HIGH:'#4FC72A', MEDIUM:'#FFC21A', LOW:'#F0341B' };
   const confFg = { HIGH:'#11100C', MEDIUM:'#11100C', LOW:'#fff' };
   function matchChunk(p) {
@@ -809,59 +778,6 @@ function renderTicker() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  PREDICTION DATE  (from predictions_export.json)
-// ═══════════════════════════════════════════════════════
-function _stageLabel(stage) {
-  const map = {
-    group_stage: 'GROUP STAGE', round_of_32: 'ROUND OF 32',
-    round_of_16: 'ROUND OF 16', quarter_final: 'QUARTER-FINALS',
-    semi_final: 'SEMI-FINALS', final: 'FINAL',
-  };
-  return map[stage] || (stage || '').replace(/_/g,' ').toUpperCase();
-}
-
-function _shortDate(iso) {
-  // "2026-06-29" → "JUNE 29"
-  if (!iso) return '';
-  try {
-    const d = new Date(iso + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { month:'long', day:'numeric' }).toUpperCase();
-  } catch { return iso; }
-}
-
-async function loadPredictionMeta() {
-  try {
-    const res = await fetch('./predictions_export.json', { cache: 'no-cache' });
-    if (!res.ok) return;
-    const data = await res.json();
-
-    const stage      = _stageLabel(data.stage);
-    const shortDate  = _shortDate(data.prediction_date);
-    const longDate   = data.generated_at || data.prediction_date || '';
-    const count      = data.fixture_count != null ? data.fixture_count : '';
-
-    const badge = document.getElementById('hero-date-badge');
-    if (badge) badge.textContent = `⚡ ${stage} · ${shortDate}`;
-
-    const sub = document.getElementById('pred-date-subtitle');
-    if (sub) sub.textContent = `${longDate} · ${count} fixture${count !== 1 ? 's' : ''} · every λ, edge & Kelly stake shown`;
-
-    const footer = document.getElementById('footer-last-updated');
-    if (footer) footer.textContent = `Last updated: ${longDate}`;
-
-    // Wire prediction cards to JSON data
-    const preds = (data.predictions || []).map(jsonToPred);
-    if (preds.length) {
-      LIVE_PREDS = preds;
-      renderTicker();
-      if (S.page === 'predictions') renderPreds();
-    }
-  } catch (e) {
-    // JSON unavailable — keep static fallback text and BASE_PREDS
-  }
-}
-
-// ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
 renderNav();
@@ -869,7 +785,6 @@ renderTicker();
 renderAlgos();
 renderRecent();
 animateCounters();
-loadPredictionMeta();
 </script>
 </body>
 </html>
