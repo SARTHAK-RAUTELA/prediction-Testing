@@ -1,0 +1,95 @@
+{
+  "generated_at": "2026-07-02T16:21:43.322526+00:00",
+  "scorers": [
+    {
+      "name": "Kylian Mbappé",
+      "team": "France",
+      "crest": "https://crests.football-data.org/773.svg",
+      "flag": "",
+      "goals": 6,
+      "assists": 2,
+      "xg": null
+    },
+    {
+      "name": "Lionel Messi",
+      "team": "Argentina",
+      "crest": "https://crests.football-data.org/762.png",
+      "flag": "",
+      "goals": 6,
+      "assists": 0,
+      "xg": null
+    },
+    {
+      "name": "Erling Haaland",
+      "team": "Norway",
+      "crest": "https://crests.football-data.org/813.svg",
+      "flag": "",
+      "goals": 5,
+      "assists": 0,
+      "xg": null
+    },
+    {
+      "name": "Harry Kane",
+      "team": "England",
+      "crest": "https://crests.football-data.org/770.svg",
+      "flag": "",
+      "goals": 5,
+      "assists": 0,
+      "xg": null
+    },
+    {
+      "name": "Ousmane Dembélé",
+      "team": "France",
+      "crest": "https://crests.football-data.org/773.svg",
+      "flag": "",
+      "goals": 4,
+      "assists": 2,
+      "xg": null
+    },
+    {
+      "name": "Vinicius Junior",
+      "team": "Brazil",
+      "crest": "https://crests.football-data.org/764.svg",
+      "flag": "",
+      "goals": 4,
+      "assists": 1,
+      "xg": null
+    },
+    {
+      "name": "Ismaïla Sarr",
+      "team": "Senegal",
+      "crest": "https://crests.football-data.org/senegal.svg",
+      "flag": "",
+      "goals": 4,
+      "assists": 1,
+      "xg": null
+    },
+    {
+      "name": "Julián Quiñones",
+      "team": "Mexico",
+      "crest": "https://crests.football-data.org/769.svg",
+      "flag": "",
+      "goals": 3,
+      "assists": 1,
+      "xg": null
+    },
+    {
+      "name": "Folarin Balogun",
+      "team": "United States",
+      "crest": "https://crests.football-data.org/usa.svg",
+      "flag": "",
+      "goals": 3,
+      "assists": 0,
+      "xg": null
+    },
+    {
+      "name": "Ismael Saibari",
+      "team": "Morocco",
+      "crest": "https://crests.football-data.org/morocco.svg",
+      "flag": "",
+      "goals": 3,
+      "assists": 0,
+      "xg": null
+    }
+  ]
+}
